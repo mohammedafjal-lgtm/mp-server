@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/config/zodOpenApi";
 
 const otpSchema = z
   .string()
@@ -6,33 +6,43 @@ const otpSchema = z
   .regex(/^\d{6}$/, "OTP must be 6 digits");
 
 export const signupSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  body: z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Invalid email"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+  })
 });
 
 export const loginSchema = z.object({
-  email: z.string().email("Invalid email"),
-  password: z.string().min(1, "Password is required"),
+  body: z.object({
+    email: z.string().email("Invalid email"),
+    password: z.string().min(1, "Password is required"),
+  })
 });
 
 export const verifyEmailSchema = z.object({
-  email: z.string().email("Invalid email"),
-  otp: otpSchema,
+  body: z.object({
+    email: z.string().email("Invalid email"),
+    otp: otpSchema,
+  })
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email("Invalid email"),
+  body: z.object({
+    email: z.string().email("Invalid email"),
+  })
 });
 
 export const resetPasswordSchema = z.object({
-  email: z.string().email("Invalid email"),
-  otp: otpSchema,
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  body: z.object({
+    email: z.string().email("Invalid email"),
+    otp: otpSchema,
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  })
 });
 
-export type SignupInput = z.infer<typeof signupSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
-export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
-export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
-export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type SignupInput = z.infer<typeof signupSchema>["body"];
+export type LoginInput = z.infer<typeof loginSchema>["body"];
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>["body"];
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>["body"];
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>["body"];

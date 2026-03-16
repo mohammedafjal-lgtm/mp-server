@@ -1,8 +1,10 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import "@/config/zodOpenApi";
 import { authRoutes } from "@/features/auth/auth.routes";
+import { openAPIRouter } from "@/api-docs/openAPIRouter";
 import { errorHandler } from "@/middleware/errorHandler";
 
 const app = express();
@@ -13,13 +15,12 @@ app.use(cors());
 app.use(helmet());
 
 app.use("/api/v1/auth", authRoutes);
-app.use(errorHandler);
 
-
-
-app.get("/health", (req, res) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.send("Hello World");
 });
+
+app.use("/docs", openAPIRouter);
 
 app.use(errorHandler);
 

@@ -20,17 +20,13 @@ import {
   sendResetPasswordEmail,
 } from "@/services/email.service";
 import type { UserResponse } from "./auth.types";
-
-export class AuthError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string
-  ) {
-    super(message);
-    this.name = "AuthError";
-    Object.setPrototypeOf(this, AuthError.prototype);
-  }
-}
+import type {
+  SignupInput,
+  LoginInput,
+  VerifyEmailInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
+} from "./auth.validation";
 
 const ACCESS_EXPIRES_MS =
   env.JWT_ACCESS_TOKEN_EXPIRES_IN_MINUTES * 60 * 1000;
@@ -57,16 +53,6 @@ function toUserResponse(row: {
   };
 }
 
-export type SignupInput = { name: string; email: string; password: string };
-export type LoginInput = { email: string; password: string };
-export type VerifyEmailInput = { email: string; otp: string };
-export type ForgotPasswordInput = { email: string };
-export type ResetPasswordInput = {
-  email: string;
-  otp: string;
-  newPassword: string;
-};
-
 export type LoginResult = {
   user: UserResponse;
   accessToken: string;
@@ -84,7 +70,7 @@ export async function signup(input: SignupInput): Promise<void> {
     [input.email]
   );
   if (existing.rows.length > 0) {
-    throw new AuthError("EMAIL_EXISTS", "Email already registered");
+    throw new Error("Email already registered");
   }
 
   const passwordHash = await hashPassword(input.password);
@@ -109,7 +95,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   );
   const user = result.rows[0];
   if (!user || !(await verifyPassword(input.password, user.password_hash))) {
-    throw new AuthError("INVALID_CREDENTIALS", "Invalid email or password");
+    throw new Error("Invalid email or password");
   }
 
   const tokenId = crypto.randomUUID();
@@ -142,10 +128,7 @@ export async function verifyEmail(input: VerifyEmailInput): Promise<void> {
 
   const storedOtp = await getOtp(redis, key);
   if (!storedOtp || storedOtp !== input.otp) {
-    throw new AuthError(
-      "INVALID_OTP",
-      "Invalid or expired verification code"
-    );
+    throw new Error("Invalid or expired verification code");
   }
 
   const result = await pool.query(
@@ -153,7 +136,7 @@ export async function verifyEmail(input: VerifyEmailInput): Promise<void> {
     [emailLower]
   );
   if (result.rowCount === 0) {
-    throw new AuthError("USER_NOT_FOUND", "User not found");
+    throw new Error("User not found");
   }
   await deleteOtp(redis, key);
 }
@@ -193,7 +176,7 @@ export async function resetPassword(
 
   const storedOtp = await getOtp(redis, key);
   if (!storedOtp || storedOtp !== input.otp) {
-    throw new AuthError("INVALID_OTP", "Invalid or expired reset code");
+    throw new Error("Invalid or expired reset code");
   }
 
   const passwordHash = await hashPassword(input.newPassword);
@@ -202,14 +185,14 @@ export async function resetPassword(
     [passwordHash, emailLower]
   );
   if (result.rowCount === 0) {
-    throw new AuthError("USER_NOT_FOUND", "User not found");
+    throw new Error("User not found");
   }
   await deleteOtp(redis, key);
 }
 
 export async function refresh(refreshToken: string): Promise<LoginResult> {
   if (!refreshToken?.trim()) {
-    throw new AuthError("REFRESH_TOKEN_INVALID", "Refresh token required");
+    throw new Error("Refresh token required");
   }
   // Will throw if the token is invalid or expired; handled by errorHandler
   verifyRefreshToken(refreshToken);
@@ -223,10 +206,7 @@ export async function refresh(refreshToken: string): Promise<LoginResult> {
     [tokenHash]
   );
   if (tokenRow.rows.length === 0) {
-    throw new AuthError(
-      "REFRESH_TOKEN_INVALID",
-      "Invalid or expired refresh token"
-    );
+        throw new Error("Invalid or expired refresh token");
   }
   const row = tokenRow.rows[0];
 
